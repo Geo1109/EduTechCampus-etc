@@ -1,0 +1,141 @@
+from machine import Timer
+import time
+import json
+import network
+from wifi import connectToWifi
+import urequests as requests
+import ujson
+from fotorezistori import ledsf, slightf
+from citiresenzori import citire_senzorWATER,citire_senzorMOIST
+from citiresenzortemperatura import citire_senzorTEMP
+from pompa import autopompa1,autopompa3,autopompa4,oprirepompa1,oprirepompa3,oprirepompa4,schimbareIntensitate,pornirepompa1,pornirepompa3,pornirepompa4
+from move import move
+from servo import Servo
+timer=Timer(-1)
+
+orastabilita=6
+oraactuala=int(str(time.localtime())[13] +""+str(time.localtime())[14])
+valmax=20
+timer=Timer(-1)
+#global= 80.97.250.38:55443
+#local= 192.168.4.210
+verificarepompa=""
+# https://80.97.250.38:55443/
+#192.168.6.95
+#192.168.0.69
+urldetrimis = 'https://192.168.1.10/oxygenie/update_plant_data.php'
+urldeluat= 'https://192.168.1.10/oxygenie/get_command.php'
+urldesters= 'https://192.168.1.10/oxygenie/delete_command.php'
+comandaled=False
+timp_ascultare_utilizator=1800000
+
+def oprirecomandaled(Source):
+     comandaled= False
+counter =0
+count = 0
+servo = Servo(15)
+servo.angle(45)
+r_value=1000
+servo_value=1000
+while True:
+    
+    if count < counter:
+        print("tot aici")
+        move(r_value, servo_value)
+        count = count + 1
+    else:
+        
+        pump1=""
+        pump2=""
+        pump3=""
+        pump4=""
+        
+        wlvl=citire_senzorWATER()
+        #temp=citire_senzorTEMP()
+        temp=25
+        slight=slightf()
+        moist=citire_senzorMOIST()
+         # Make GET request
+        r = requests.get(urldeluat)
+        print("nu")
+        print(r.content)
+        valoare=r.content.decode('utf8').replace("'", '"')
+        r.close()
+        if valoare== "no command":
+            print("fara comenzi")
+        else:
+            resp= json.loads(valoare)
+            if resp[0]['parameter_name'] == 'pump_1':
+                if moist > 6500 or int(resp[0]['value']) >500:
+                    print("valoare prea mare pt sol")
+                else:
+                    pornirepompa1(int(resp[0]['value']))
+                    pump1=str(time.localtime())
+                    verificarepompa='pump_1'
+            if resp[0]['parameter_name'] == 'pump_3':
+               if moist > 6600 or int(resp[0]['value']) >500:
+                    print("valoare prea mare pt sol")
+               else:
+                    pornirepompa3(int(resp[0]['value']))
+                    pump3=str(time.localtime())
+                    verificarepompa='pump_3'
+            if resp[0]['parameter_name'] == 'pump_4':
+                if moist > 6600 or int(resp[0]['value']) >500:
+                    print("valoare prea mare pt sol")
+                else:
+                    pornirepompa4(int(resp[0]['value']))
+                    pump4=str(time.localtime())
+                    verificarepompa='pump_4'
+            if resp[0]['parameter_name'] == 'leds_intensity':
+                if oraactuala < orastabilita:
+                    comandaled= False
+                else:
+                    schimbareIntensitate(int(resp[0]['value']))
+                    leds=int(resp[0]['value'])
+                    comandaled= True
+                    timer.init(period=timp_ascultare_utilizator, mode=Timer.ONE_SHOT, callback=oprirecomandaled)
+            # stergem comanda
+            r = requests.post(urldesters)
+            r.close()
+        if comandaled == False:
+            leds=ledsf()
+        # daca ii uscat uzi cu catva
+        # utilizatorul baga apa numa daca nu ii prea ud
+        # daca valoarea ii mai mica de 30000 pornim pompe
+        
+            
+        else:
+            if(verificarepompa !='pump_1'):
+                oprirepompa1()
+            if(verificarepompa !='pump_3'):
+                oprirepompa3()
+            if(verificarepompa !='pump_4'):
+                oprirepompa4()
+       
+        data = {
+            'leds_intensity': leds,
+            'water_level': wlvl,
+            'temperature': temp,
+            'sunlight' : slight,
+            'pump_1' : pump1,
+            'pump_2' : pump2,
+            'pump_3' : pump3,
+            'pump_4' : pump4,
+            'moist': moist
+            
+        }
+        print (data)
+
+        # Convert the data to a JSON string
+        json_data = json.dumps(data)
+        r = requests.post(urldetrimis, data=json_data)
+
+        if r.status_code == 200:
+            print("Data sent successfully")
+            print(r.text)
+        else:
+            print("Error sending data")
+            print(r.status_code)
+        count = 0
+        r.close()
+

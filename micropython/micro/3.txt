@@ -1,0 +1,24 @@
+import time
+from machine import Pin, PWM, ADC
+
+adc = ADC(Pin(27))
+adc2 = ADC(Pin(28))
+
+def citire_senzorMOIST():
+    sezMOIST = Pin(1, Pin.OUT)
+    sezMOIST.value(0)
+    print(adc2.read_u16())
+    return adc2.read_u16()
+
+def citire_senzorWATER():
+    sezTEMP = Pin(21, Pin.IN)
+    sezMOIST = Pin(1, Pin.IN)
+    sezWATER = Pin(22, Pin.OUT)
+    sezWATER.value(0)
+    return adc.read_u16()
+    #print(f'sezMOIST :{adc.read_u16()}'
+#while True:
+   # print(citire_senzorWATER())
+   # time.sleep(1)
+    
+

@@ -1,0 +1,69 @@
+import time
+from machine import Pin, PWM, ADC
+
+from pompa import pornirebec,schimbareIntensitate
+
+adc = ADC(Pin(26))
+
+def citire_senzor1():
+    p19 = Pin(19, Pin.IN)
+    p18 = Pin(18, Pin.IN)
+    p17 = Pin(17, Pin.IN)
+    p16 = Pin(16, Pin.IN)
+    p20 = Pin(20, Pin.OUT)
+    p20.value(0)
+    return adc.read_u16()
+    
+def citire_senzor2():
+    p20 = Pin(20, Pin.IN)
+    p18 = Pin(18, Pin.IN)
+    p17 = Pin(17, Pin.IN)
+    p16 = Pin(16, Pin.IN)
+    p19 = Pin(19, Pin.OUT)
+    p19.value(0)
+    return adc.read_u16()
+    
+def citire_senzor3():
+    p20 = Pin(20, Pin.IN)
+    p19 = Pin(19, Pin.IN)
+    p17 = Pin(17, Pin.IN)
+    p16 = Pin(16, Pin.IN)
+    p18 = Pin(18, Pin.OUT)
+    p18.value(0)
+    return adc.read_u16()
+    
+def citire_senzor4():
+    p20 = Pin(20, Pin.IN)
+    p19 = Pin(19, Pin.IN)
+    p18 = Pin(18, Pin.IN)
+    p16 = Pin(16, Pin.IN)
+    p17 = Pin(17, Pin.OUT)
+    p17.value(0)
+    return adc.read_u16()+9000
+    
+valintuneric = 54000
+
+def slightf():
+    sez1=citire_senzor1()
+    sez2=citire_senzor2()
+    sez3=citire_senzor3()
+    sez4=citire_senzor4()
+    ma=(sez1 + sez2 + sez3 +sez4)/4
+    if ma>20500:
+      return 0
+    else:
+      return 1
+    
+def ledsf():
+    sez1=citire_senzor1()
+    sez2=citire_senzor2()
+    sez3=citire_senzor3()
+    sez4=citire_senzor4()
+    ma= int((sez1 + sez2 + sez3 +sez4)/4)
+    if ma >= 50000:
+        schimbareIntensitate(int(ma*100/65000))
+        return int(ma*100/65000)
+    else:
+        schimbareIntensitate(0)
+        return 0
+#

@@ -1,0 +1,62 @@
+import time
+from servo import *
+from stepper import mutare_stepper_dreapta,mutare_stepper_stanga
+from fotorezistori import citire_senzor1,citire_senzor2,citire_senzor3,citire_senzor4
+
+gradeservo=70
+def move(r_value, servo_value):
+    
+    global gradeservo
+    servo = Servo(15)
+    sez1=citire_senzor1() + 4000
+    sez2=citire_senzor2()
+    sez3=citire_senzor3()
+    sez4=citire_senzor4()
+        
+    print(f'sez1 :{sez1}')
+    print(f'sez2 :{sez2}')
+    print(f'sez3 :{sez3}')
+    print(f'sez4 :{sez4}')
+    
+    print("-----")
+        
+    avgtop=(sez1 + sez2)/2
+    avgbot=(sez3 + sez4)/2
+    avgleft=(sez1 + sez3)/2
+    avgright=(sez2 + sez4)/2
+        
+   # print(f'avgtop :{avgtop}')
+   # print(f'avgbot :{avgbot}')
+    #print(f'avgleft :{avgleft}')
+    #print(f'avgright :{avgright}')
+        
+    difazi=avgleft-avgright
+    difelev=avgtop-avgbot
+       
+    #print(f'difelev :{difelev}')
+    #print(f'difazi :{difazi}')    
+            
+    if abs(difazi) >= r_value:
+        if difazi > 0:
+            print("mutare stepper stanga")
+            mutare_stepper_dreapta(5)
+        if difazi < 0:
+            print("mutare stepper drepta")
+            mutare_stepper_stanga(5)
+               
+    if abs(difelev) >= servo_value:
+        if difelev > 0 and gradeservo > 65:
+            print("mutare servo sus")
+            gradeservo=gradeservo-5
+            servo.angle(gradeservo)
+        if difelev < 0 :
+            if gradeservo < 105:
+                
+                print("mutare servo jos")
+                gradeservo=gradeservo+5
+                servo.angle(gradeservo)
+            else:
+                print("a ajuns la 0")
+while True:
+    
+    move(800,800)
